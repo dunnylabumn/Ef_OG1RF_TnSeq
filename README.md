@@ -1,1 +1,1 @@
-This is the pipeline used to analyze data generated from TnSeq using E. faecalis OG1RF.
+This is the pipeline used to analyze data generated from TnSeq using E. faecalis OG1RF.  This code was originally developed by Dr. Joshua Baller at the Minnesota Supercomputing Institute at the University of Minnesota, Twin Cities.  It was published in <CITATION>.
