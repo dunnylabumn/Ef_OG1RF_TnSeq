@@ -1,0 +1,64 @@
+#PBS -l nodes=1:ppn=1,mem=4gb,walltime=5:00:00
+#PBS -m ae
+#PBS -e /home/support/jballer/torque_logs/error.transposon_processing.$PBS_JOBID
+#PBS -o /home/support/jballer/torque_logs/output.transposon_processing.$PBS_JOBID
+
+module load fastqc
+module load cutadapt
+module load bwa
+module load bedtools
+module load samtools
+module load R
+
+#Set forward_reads
+#Set input_dir
+#To submit jobs for all files in a folder see the comment below:
+#for f in /home/dunnearh/data_release/umgc/hiseq/141121_700506R_0405_BHAUGEADXX/Project_Dunny_Project_011/*; do qsub ~/Dunny/transposon_pipeline/transposon_pipeline.pbs -v "input_path=$f"; done 
+
+echo $input_path
+echo $output_path
+forward_reads="$(basename $input_path)"
+input_dir="$(dirname $input_path)"
+
+#for f in /home/dunnearh/data_release/umgc/hiseq/170926_D00635_0286_ACBH16ANXX/Dunny_Project_035/*R1*.fastq; do qsub ~/Dunny/transposon_pipeline/transposon_pipeline.pbs -v "input_path=$f,output_path=/home/support/jballer/Dunny/outset1/"; done 
+
+#for f in /home/dunnearh/data_release/umgc/hiseq/171010_D00635_0292_BCBN3EANXX/Dunny_Project_035/*R1*.fastq; do qsub ~/Dunny/transposon_pipeline/transposon_pipeline.pbs -v "input_path=$f,output_path=/home/support/jballer/Dunny/outset2/"; done 
+#
+#
+#/home/dunnearh/data_release/umgc/hiseq/170926_D00635_0286_ACBH16ANXX/Dunny_Project_035
+#/home/dunnearh/data_release/umgc/hiseq/171010_D00635_0292_BCBN3EANXX/Dunny_Project_035
+#
+
+#input_dir="/home/dunnearh/data_release/umgc/hiseq/141121_700506R_0405_BHAUGEADXX/Project_Dunny_Project_011/"
+output_dir="$output_path"
+index_dir="/home/support/jballer/Dunny/transposon_pipeline/"
+
+cd $input_dir
+
+cutadapt -O 6 -a "CCAAAATCCGTTCCTTTTTC" -a "CCAAAATCCGTTCCTTTTTCATAGTTCCTATATAGTTATACGCGTCTAGAGACCGGGGACTTATCAGCCAACCTGT" -g "GCGACGCCATCTATGTGTCTAGAGACCGGGGACTTATCAGCCAACCTGTTATCAGCCAACCTGT" -g "GCGACGCCATCTATGTGTCTAGAGACCGGGGACTTATCAGCCAACCTGT" --untrimmed-output="${output_dir}/${forward_reads}.untrimmed" -o ${output_dir}/${forward_reads}.trimmed $forward_reads
+ 
+bwa mem -k 10 "${index_dir}/E_faecalis.fasta" "${output_dir}/${forward_reads}.trimmed" > "${output_dir}/${forward_reads}.sam"
+
+grep -e "^@" -e "	TA" "${output_dir}/${forward_reads}.sam" > "${output_dir}/${forward_reads}.TA.FW.sam"
+grep -v -e "	TA" "${output_dir}/${forward_reads}.sam" > "${output_dir}/${forward_reads}.TA.sam"
+grep -e "^@" -e "TA	" "${output_dir}/${forward_reads}.TA.sam" > "${output_dir}/${forward_reads}.TA.RW.sam"
+
+samtools view -bS -F 4 -q 1 "${output_dir}/${forward_reads}.TA.FW.sam" > "${output_dir}/${forward_reads}.FW.bam"
+samtools view -bS -F 4 -q 1 "${output_dir}/${forward_reads}.TA.RW.sam" > "${output_dir}/${forward_reads}.RW.bam"
+
+bedtools genomecov -d -5 -ibam "${output_dir}/${forward_reads}.FW.bam" -g "${index_dir}/E_faecalis.fasta" > "${output_dir}/${forward_reads}.FW.tab"
+bedtools genomecov -d -3 -ibam "${output_dir}/${forward_reads}.RW.bam" -g "${index_dir}/E_faecalis.fasta" > "${output_dir}/${forward_reads}.RW.tab"
+
+Rscript --vanilla "$index_dir/site_filter.R" "$index_dir" "${output_dir}/${forward_reads}.FW.tab" "${output_dir}/${forward_reads}.RW.tab" "${output_dir}/${forward_reads}.all.tab"
+
+rm "${output_dir}/${forward_reads}.TA.FW.sam"
+rm "${output_dir}/${forward_reads}.TA.RW.sam"
+rm "${output_dir}/${forward_reads}.TA.sam"
+rm "${output_dir}/${forward_reads}.sam"
+rm "${output_dir}/${forward_reads}.FW.bam"
+rm "${output_dir}/${forward_reads}.RW.bam"
+rm "${output_dir}/${forward_reads}.FW.tab"
+rm "${output_dir}/${forward_reads}.RW.tab"
+rm "${output_dir}/${forward_reads}.trimmed"
+
+

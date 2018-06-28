@@ -1,0 +1,17 @@
+#PBS -l nodes=1:ppn=24,mem=40gb,walltime=72:00:00
+#PBS -m ae
+#PBS -e /home/support/jballer/torque_logs/error.comparison_processing.$PBS_JOBID
+#PBS -o /home/support/jballer/torque_logs/output.comparison_processing.$PBS_JOBID
+#PBS -A dunnearh
+
+module load R
+
+basedir='/home/support/jballer/Dunny'
+
+cd $basedir
+
+#Rscript --vanilla /home/support/jballer/Dunny/transposon_pipeline/CompareSets.R $basedir/sample_def_176k.tab $basedir/results_176k.tab
+#Rscript --vanilla /home/support/jballer/Dunny/transposon_pipeline/CompareSets.R $basedir/sample_def_6700.tab $basedir/results_6700.tab
+
+Rscript --vanilla /home/support/jballer/Dunny/transposon_pipeline/CompareSets.R $basedir/sample_def_7k.tab $basedir/results_def_7k.tab
+Rscript --vanilla /home/support/jballer/Dunny/transposon_pipeline/CompareSets.R $basedir/sample_def_2k.tab $basedir/results_def_2k.tab
